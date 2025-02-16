@@ -1,4 +1,4 @@
-# BookStore API
+# Book API
 
 ## Setup Instructions
 
