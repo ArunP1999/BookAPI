@@ -8,6 +8,8 @@ namespace BookAPI.Repositories
         Task<ActionResult> GetBooksSortedByPublisherAsync();
         Task<ActionResult> GetBooksSortedByAuthorAsync();
         Task<decimal> GetTotalBookPriceAsync();
-        Task BulkInsertBooksAsync(IEnumerable<Book> books);
+        Task BulkInsertBooksAsync(IEnumerable<BookCreate> books);
+        Task<ActionResult> GetBooksSortedByPublisherwithSPAsync(string sortQuery);
+        Task<ActionResult> GetBooksSortedByAuthorwithSPAsync(string sortQuery);
     }
 }

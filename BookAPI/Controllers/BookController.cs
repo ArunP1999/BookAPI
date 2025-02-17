@@ -77,7 +77,7 @@ namespace BookAPI.Controllers
         }
 
         [HttpPost("bulk-insert")]
-        public async Task<IActionResult> BulkInsertBooks([FromBody] IEnumerable<Book> books)
+        public async Task<IActionResult> BulkInsertBooks([FromBody] IList<BookCreate> books)
         {
             try
             {
@@ -91,6 +91,48 @@ namespace BookAPI.Controllers
                 return StatusCode(500, new
                 {
                     Message = "Error while Inserting Books",
+                    Details = ex.Message
+                });
+            }
+        }
+
+        //retrive data by SP
+
+        [HttpGet("sorted-by-publisher-sp")]
+        public async Task<ActionResult> GetBooksSortedByPublisherwithSP()
+        {
+            try
+            {
+                Log.Information("Sorting books by publisher by SP");
+                var books = await _bookRepository.GetBooksSortedByPublisherwithSPAsync("Publisher, AuthorLastName, AuthorFirstName, Title");
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Error while sorting books by publisher: {ex.Message}");
+                return StatusCode(500, new
+                {
+                    Message = "Error while sorting books by publisher",
+                    Details = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("sorted-by-author-sp")]
+        public async Task<ActionResult> GetBooksSortedByAuthorwithSP()
+        {
+            try
+            {
+                Log.Information("Sorting books by Author by SP");
+                var books = await _bookRepository.GetBooksSortedByAuthorwithSPAsync("AuthorLastName, AuthorFirstName, Title");
+                return Ok(books);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Error while sorting books by Author: {ex.Message}");
+                return StatusCode(500, new
+                {
+                    Message = "Error while sorting books by Author",
                     Details = ex.Message
                 });
             }

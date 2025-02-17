@@ -1,6 +1,7 @@
 ﻿using BookAPI.Data;
 using BookAPI.Models;
 using BookAPI.Repositories;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,12 @@ namespace BookAPI.Repositories
     public class BookRepository : IBookRepository
     {
         private readonly BookDbContext _context;
+        private readonly string _connectionString;
 
-        public BookRepository(BookDbContext context)
+        public BookRepository(BookDbContext context , IConfiguration configuration )
         {
             _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection");
         }
 
         public async Task<ActionResult> GetBooksSortedByPublisherAsync()
@@ -29,6 +32,7 @@ namespace BookAPI.Repositories
                     .ThenBy(b => b.Title)
                     .Select(b => new
                     {
+                        b.Id,
                         b.Publisher,
                         b.Title,
                         b.AuthorLastName,
@@ -61,6 +65,7 @@ namespace BookAPI.Repositories
                     .ThenBy(b => b.Title)
                      .Select(b => new
                      {
+                         b.Id,
                          b.Publisher,
                          b.Title,
                          b.AuthorLastName,
@@ -102,11 +107,20 @@ namespace BookAPI.Repositories
             }
         }
 
-        public async Task BulkInsertBooksAsync(IEnumerable<Book> books)
+        public async Task BulkInsertBooksAsync(IEnumerable<BookCreate> books)
         {
             try
             {
-                await _context.Books.AddRangeAsync(books);
+                var bookEntities = books.Select(b => new Book
+                {
+                    Publisher = b.Publisher,
+                    Title = b.Title,
+                    AuthorLastName = b.AuthorLastName,
+                    AuthorFirstName = b.AuthorFirstName,
+                    Price = b.Price
+                }).ToList();
+
+                await _context.Books.AddRangeAsync(bookEntities);
                 await _context.SaveChangesAsync();
             }
             catch (SqlException ex)
@@ -117,6 +131,53 @@ namespace BookAPI.Repositories
             catch (Exception ex)
             {
                 Log.Error($"Unexpected error while BulkInsertBooks : {ex.Message}");
+                throw new Exception("An unexpected error occurred.");
+            }
+        }
+
+        //Retrive data by SP
+        public async Task<ActionResult> GetBooksSortedByPublisherwithSPAsync(string sortQuery)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    return new ObjectResult ((await connection.QueryAsync<Book>($"EXEC GetBooksSorted '{sortQuery}'")).ToList());
+                                        
+                }
+            }
+            catch (SqlException ex)
+            {
+                Log.Error($"Database error while GetBooksSortedByPublisherwithSP: {ex.Message}");
+                throw new Exception("A database error occurred. Please try again later.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Unexpected error while GetBooksSortedByPublisherwithSP : {ex.Message}");
+                throw new Exception("An unexpected error occurred.");
+            }
+        }
+
+        
+        public async Task<ActionResult> GetBooksSortedByAuthorwithSPAsync(string sortQuery)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(_connectionString))
+                {
+                    return new ObjectResult((await connection.QueryAsync<Book>($"EXEC GetBooksSorted '{sortQuery}'")).ToList());
+
+                }
+
+            }
+            catch (SqlException ex)
+            {
+                Log.Error($"Database error while GetBooksSortedByAuthorwithSP: {ex.Message}");
+                throw new Exception("A database error occurred. Please try again later.");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Unexpected error while GetBooksSortedByAuthorwithSP : {ex.Message}");
                 throw new Exception("An unexpected error occurred.");
             }
         }
